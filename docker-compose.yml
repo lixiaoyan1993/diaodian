@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: diaodian-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: diaodian
+      MYSQL_USER: diaodian
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./server/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  server:
+    build: ./server
+    container_name: diaodian-api
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      DATABASE_URL: "mysql://diaodian:${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}@mysql:3306/diaodian"
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      PORT: 3721
+    ports:
+      - "3721:3721"
+
+  admin:
+    build: ./admin
+    container_name: diaodian-admin
+    restart: unless-stopped
+    ports:
+      - "3777:80"
+    depends_on:
+      - server
+
+volumes:
+  mysql_data:

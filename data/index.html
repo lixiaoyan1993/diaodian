@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>微信小程序数据解析工具</title>
+  <style>
+    *{box-sizing:border-box;font-family: Arial, sans-serif;}
+    body{max-width:1400px;margin:30px auto;padding:0 20px;}
+    .box{border:1px solid #ddd;border-radius:10px;padding:18px;margin:20px 0;background:#fcfcfc;}
+    h2{color:#2c3e50;margin-top:0;}
+    button{padding:10px 22px;background:#2d8cf0;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:15px;margin-top:10px;}
+    button:hover{background:#2468c7;}
+    button:disabled{background:#999;cursor:not-allowed;}
+    #fetchResult{margin-top:15px;font-size:15px;font-weight:bold;color:#00b42a;}
+    #fetchResult.error{color:#e74c3c;}
+    .row{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:12px 0;}
+    .field{display:flex;flex-direction:column;gap:4px;}
+    .field label{font-size:13px;color:#555;font-weight:bold;}
+    .field input,.field select{padding:8px 12px;border:1px solid #ccc;border-radius:6px;font-size:14px;min-width:140px;}
+    .status-bar{margin-top:10px;font-size:14px;color:#555;white-space:pre-wrap;}
+    .progress-wrap{width:100%;background:#eee;border-radius:8px;overflow:hidden;height:20px;margin:8px 0;position:relative;}
+    .progress-bar{height:20px;background:linear-gradient(90deg,#2d8cf0,#40a9ff);width:0%;transition:width 0.4s ease;border-radius:8px;}
+    .progress-text{position:absolute;top:0;left:0;right:0;bottom:0;line-height:20px;text-align:center;font-size:12px;font-weight:bold;color:#333;}
+    .city-list{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0;}
+    .city-tag{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;background:#e8f4fd;color:#2d8cf0;}
+    .city-tag.done{background:#d4edda;color:#155724;}
+    .city-tag.fail{background:#f8d7da;color:#721c24;}
+    .city-tag.active{background:#fff3cd;color:#856404;}
+    .log-box{background:#1e1e1e;color:#d4d4d4;border-radius:6px;padding:12px;font-family:Consolas,monospace;font-size:13px;margin-top:12px;max-height:300px;overflow-y:auto;white-space:pre-wrap;line-height:1.6;}
+    .log-box .ok{color:#4ec9b0;}
+    .log-box .info{color:#9cdcfe;}
+    .log-box .warn{color:#ce9178;}
+    .log-box .err{color:#f44747;}
+    .log-box .summary{color:#c586c0;font-weight:bold;}
+    .log-box .highlight{color:#dcdcaa;}
+  </style>
+</head>
+<body>
+
+<h1>微信小程序数据解析工具</h1>
+
+<!-- ===== 从接口拉取 ===== -->
+<div class="box">
+  <h2>从接口拉取数据（按省份自动遍历城市）</h2>
+  <div class="row">
+    <div class="field">
+      <label>省份</label>
+      <select id="province" onchange="onProvinceChange()">
+        <option value="">— 请选择省份 —</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>pagesize（每市拉取条数）</label>
+      <input id="pagesize" value="10000" type="number" min="1" max="100000" style="min-width:100px;">
+    </div>
+  </div>
+  <div id="cityTags" class="city-list"></div>
+  <button id="fetchBtn" onclick="fetchAndImport()">🚀 拉取并导入</button>
+  <div id="fetchResult"></div>
+  <div id="fetchStatus" class="status-bar"></div>
+  <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div><div id="progressText" class="progress-text">等待开始...</div></div>
+  <div id="logBox" class="log-box" style="display:none;"></div>
+</div>
+
+<script>
+// ========== 省份 → 城市映射（中国地级市） ==========
+const PROVINCE_CITIES = {
+  '北京': ['北京'],
+  '上海': ['上海'],
+  '天津': ['天津'],
+  '重庆': ['重庆'],
+  '广东': ['广州','深圳','珠海','汕头','佛山','韶关','湛江','肇庆','江门','茂名','惠州','梅州','汕尾','河源','阳江','清远','东莞','中山','潮州','揭阳','云浮'],
+  '浙江': ['杭州','宁波','温州','嘉兴','湖州','绍兴','金华','衢州','舟山','台州','丽水'],
+  '江苏': ['南京','无锡','徐州','常州','苏州','南通','连云港','淮安','盐城','扬州','镇江','泰州','宿迁'],
+  '山东': ['济南','青岛','淄博','枣庄','东营','烟台','潍坊','济宁','泰安','威海','日照','临沂','德州','聊城','滨州','菏泽'],
+  '四川': ['成都','自贡','攀枝花','泸州','德阳','绵阳','广元','遂宁','内江','乐山','南充','眉山','宜宾','广安','达州','雅安','巴中','资阳'],
+  '湖北': ['武汉','黄石','十堰','宜昌','襄阳','鄂州','荆门','孝感','荆州','黄冈','咸宁','随州'],
+  '湖南': ['长沙','株洲','湘潭','衡阳','邵阳','岳阳','常德','张家界','益阳','郴州','永州','怀化','娄底'],
+  '福建': ['福州','厦门','莆田','三明','泉州','漳州','南平','龙岩','宁德'],
+  '河北': ['石家庄','唐山','秦皇岛','邯郸','邢台','保定','张家口','承德','沧州','廊坊','衡水'],
+  '河南': ['郑州','开封','洛阳','平顶山','安阳','鹤壁','新乡','焦作','濮阳','许昌','漯河','三门峡','南阳','商丘','信阳','周口','驻马店'],
+  '安徽': ['合肥','芜湖','蚌埠','淮南','马鞍山','淮北','铜陵','安庆','黄山','滁州','阜阳','宿州','六安','亳州','池州','宣城'],
+  '辽宁': ['沈阳','大连','鞍山','抚顺','本溪','丹东','锦州','营口','阜新','辽阳','盘锦','铁岭','朝阳','葫芦岛'],
+  '陕西': ['西安','铜川','宝鸡','咸阳','渭南','延安','汉中','榆林','安康','商洛'],
+  '江西': ['南昌','景德镇','萍乡','九江','新余','鹰潭','赣州','吉安','宜春','抚州','上饶'],
+  '广西': ['南宁','柳州','桂林','梧州','北海','防城港','钦州','贵港','玉林','百色','贺州','河池','来宾','崇左'],
+  '云南': ['昆明','曲靖','玉溪','保山','昭通','丽江','普洱','临沧','楚雄','红河','文山','西双版纳','大理','德宏','怒江','迪庆'],
+  '吉林': ['长春','吉林','四平','辽源','通化','白山','松原','白城'],
+  '黑龙江': ['哈尔滨','齐齐哈尔','鸡西','鹤岗','双鸭山','大庆','伊春','佳木斯','七台河','牡丹江','黑河','绥化'],
+  '山西': ['太原','大同','阳泉','长治','晋城','朔州','晋中','运城','忻州','临汾','吕梁'],
+  '贵州': ['贵阳','六盘水','遵义','安顺','毕节','铜仁'],
+  '甘肃': ['兰州','嘉峪关','金昌','白银','天水','武威','张掖','平凉','酒泉','庆阳','定西','陇南'],
+  '内蒙古': ['呼和浩特','包头','乌海','赤峰','通辽','鄂尔多斯','呼伦贝尔','巴彦淖尔','乌兰察布'],
+  '新疆': ['乌鲁木齐','克拉玛依','吐鲁番','哈密'],
+  '海南': ['海口','三亚','三沙','儋州'],
+  '宁夏': ['银川','石嘴山','吴忠','固原','中卫'],
+  '青海': ['西宁','海东'],
+  '西藏': ['拉萨','日喀则','昌都','林芝','山南','那曲'],
+  '香港': ['香港'],
+  '澳门': ['澳门'],
+  '台湾': ['台北','高雄','台中','台南']
+};
+
+// ========== 工具函数 ==========
+
+function parseApiResponse(json) {
+  const items = json.all_notes || json.data?.list || json.list || [];
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  // 直辖市列表
+  const MUNICIPALITIES = ['北京','上海','天津','重庆'];
+
+  // 去掉 district 中的省/市前缀（"北京市大兴区" → "大兴区"）
+  function stripProvincePrefix(rawProvince, rawCity, rawDistrict) {
+    let d = rawDistrict || '';
+    // 先试"省/市"全称，再试简称
+    if (rawProvince) {
+      const pSuffix = rawProvince + '市';
+      if (d.startsWith(pSuffix)) { d = d.replace(pSuffix, ''); }
+      else if (d.startsWith(rawProvince)) { d = d.replace(rawProvince, ''); }
+    }
+    if (rawCity) {
+      const cSuffix = rawCity + '市';
+      if (d.startsWith(cSuffix)) { d = d.replace(cSuffix, ''); }
+      else if (d.startsWith(rawCity)) { d = d.replace(rawCity, ''); }
+    }
+    return d;
+  }
+
+  return items.map(item => {
+    const rawProv = item.province || '';
+    const rawCity = item.city || '';
+
+    // province: 直辖市加"市"，其余加"省"
+    const province = MUNICIPALITIES.includes(rawProv) ? rawProv + '市' : rawProv + '省';
+    // city: 统一加"市"
+    const city = rawCity ? rawCity + '市' : '';
+    // district: 去掉省/市前缀
+    const district = stripProvincePrefix(rawProv, rawCity, item.district || '');
+
+    return {
+      name: item.location || '',
+      style: '台钓,路亚',
+      species: '',
+      latitude: item.latitude,
+      longitude: item.longitude,
+      address: item.address || '',
+      province,
+      city,
+      district,
+      note: item.description || ''
+    };
+  });
+}
+
+// ========== 省份选择逻辑 ==========
+function onProvinceChange() {
+  const sel = document.getElementById('province');
+  const container = document.getElementById('cityTags');
+  const prov = sel.value;
+  if (!prov || !PROVINCE_CITIES[prov]) {
+    container.innerHTML = '';
+    return;
+  }
+  const cities = PROVINCE_CITIES[prov];
+  container.innerHTML = `<span style="font-size:13px;color:#555;margin-right:6px;">将遍历 ${cities.length} 个市：</span>`
+    + cities.map(c => `<span class="city-tag" data-city="${c}">${c}</span>`).join('');
+}
+
+// 页面加载时填充省份列表
+(function initProvinceSelect() {
+  const sel = document.getElementById('province');
+  const provs = Object.keys(PROVINCE_CITIES);
+  sel.innerHTML = '<option value="">— 请选择省份 —</option>'
+    + provs.map(p => `<option value="${p}">${p}（${PROVINCE_CITIES[p].length} 市）</option>`).join('');
+})();
+
+// ========== 拉取并导入（按城市循环） ==========
+async function fetchAndImport() {
+  const btn = document.getElementById('fetchBtn');
+  const resultDiv = document.getElementById('fetchResult');
+  const statusDiv = document.getElementById('fetchStatus');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+  const logBox = document.getElementById('logBox');
+  const prov = document.getElementById('province').value;
+  const pagesize = parseInt(document.getElementById('pagesize').value) || 10000;
+
+  function setProgress(pct, label) {
+    progressBar.style.width = pct + '%';
+    progressText.innerText = label + ` (${Math.round(pct)}%)`;
+  }
+
+  if (!prov || !PROVINCE_CITIES[prov]) {
+    resultDiv.className = 'error';
+    resultDiv.innerText = '请先选择省份';
+    return;
+  }
+
+  const cities = PROVINCE_CITIES[prov];
+  btn.disabled = true;
+  resultDiv.className = '';
+  resultDiv.innerText = '';
+  statusDiv.innerText = '';
+  setProgress(0, '初始化');
+  logBox.style.display = 'block';
+  logBox.innerHTML = `<span class="info">▶ 开始处理 ${prov}（共 ${cities.length} 个市）</span>\n`;
+
+  function log(text, cls = '') {
+    logBox.innerHTML += `<span class="${cls}">${text}</span>\n`;
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+
+  let allList = [];
+  let cityOk = 0;
+  let isStopped = false;
+
+  // ---- 阶段一：逐城市拉取 ----
+  for (let i = 0; i < cities.length; i++) {
+    const city = cities[i];
+    document.querySelectorAll('.city-tag').forEach(el => {
+      el.className = 'city-tag';
+      if (el.dataset.city === city) el.className = 'city-tag active';
+    });
+    statusDiv.innerText = `[${i+1}/${cities.length}] 正在拉取 ${prov} · ${city} ...`;
+    setProgress(Math.round((i / cities.length) * 65), `拉取中 ${i+1}/${cities.length}`);
+
+    try {
+      const url = `https://diaoyu.comfyui.team/api/spot/index?page=1&pagesize=${pagesize}&province=${encodeURIComponent(prov)}&city=${encodeURIComponent(city)}`;
+      const proxyRes = await fetch(`/api/proxy?url=${encodeURIComponent(url)}`);
+      if (!proxyRes.ok) throw new Error(`HTTP ${proxyRes.status}`);
+      const json = await proxyRes.json();
+      const list = parseApiResponse(json);
+
+      if (list.length > 0) {
+        allList.push(...list);
+        cityOk++;
+        log(`  [${i+1}/${cities.length}] ${city}  → 获取 ${list.length} 条`, 'ok');
+        document.querySelectorAll('.city-tag').forEach(el => {
+          if (el.dataset.city === city) el.className = 'city-tag done';
+        });
+      } else {
+        log(`  [${i+1}/${cities.length}] ${city}  → 无数据`, 'warn');
+      }
+
+      // 每个城市拉完后随机等 5~10 秒再拉下一个（最后一个不等）
+      if (i < cities.length - 1) {
+        const waitSec = Math.floor(Math.random() * 6) + 5; // 5~10 秒
+        statusDiv.innerText = `[${i+1}/${cities.length}] ${city} 完成，等待 ${waitSec} 秒后继续...`;
+        log(`  ⏳ 等待 ${waitSec} 秒`, 'info');
+        await new Promise(r => setTimeout(r, waitSec * 1000));
+      }
+    } catch (e) {
+      document.querySelectorAll('.city-tag').forEach(el => {
+        if (el.dataset.city === city) el.className = 'city-tag fail';
+      });
+      const errMsg = `  [${i+1}/${cities.length}] ${city}  → ❌ ${e.message}`;
+      log(errMsg, 'err');
+      log(`\n⛔ 发生错误，已终止（${city} 失败后不再继续）`, 'err');
+      statusDiv.innerText = `❌ 已终止：${city} 请求失败`;
+      isStopped = true;
+      break;
+    }
+  }
+
+  // ---- 无数据则退出 ----
+  if (allList.length === 0) {
+    setProgress(100, '无数据');
+    const msg = isStopped ? '因请求失败无数据可导入' : '全省无钓点数据';
+    resultDiv.className = 'error';
+    resultDiv.innerText = `❌ ${msg}`;
+    log(`\n📊 结果：${msg}`, 'summary');
+    btn.disabled = false;
+    return;
+  }
+
+  // ---- 阶段二：导入数据库 ----
+  setProgress(80, '导入中');
+  log(`\n📤 共 ${allList.length} 条数据，提交导入...`, 'info');
+  statusDiv.innerText = `共 ${allList.length} 条数据，正在导入数据库...`;
+
+  try {
+    const importRes = await fetch('/api/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ list: allList })
+    });
+
+    const importResult = await importRes.json();
+
+    if (!importRes.ok) {
+      throw new Error(importResult.msg || `HTTP ${importRes.status}`);
+    }
+
+    setProgress(100, '✅ 完成');
+    resultDiv.className = '';
+    resultDiv.innerText = importResult.msg;
+
+    log('', '');
+    log('═══════════════════════════════════════', 'summary');
+    log(`  📊 最终统计`, 'summary');
+    log(`  ┌──────────────────────────────────`, 'summary');
+    log(`  │ 总计拉取  ${String(allList.length).padStart(6)} 条  (${cityOk}/${cities.length} 市)`, 'highlight');
+    log(`  │ 新增入库  ${String(importResult.inserted).padStart(6)} 条  ✅`, 'ok');
+    log(`  │ 已存在    ${String(importResult.skipped).padStart(6)} 条  ⏭️`, 'warn');
+    log(`  └──────────────────────────────────`, 'summary');
+    log('═══════════════════════════════════════', 'summary');
+
+    statusDiv.innerText = `✅ 完成：${allList.length} 条中新增 ${importResult.inserted} 条，已存在 ${importResult.skipped} 条`;
+  } catch (e) {
+    resultDiv.className = 'error';
+    resultDiv.innerText = `❌ 导入失败`;
+    log(`\n❌ 导入异常：${e.message}`, 'err');
+  }
+
+  btn.disabled = false;
+}
+
+</script>
+</body>
+</html>

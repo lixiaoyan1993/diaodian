@@ -1,0 +1,32 @@
+{
+  "name": "鱼标点",
+  "appid": "__UNI__DEV__",
+  "description": "钓鱼标点记录工具",
+  "versionName": "1.0.0",
+  "versionCode": "1",
+  "transformPx": false,
+  "uniStatistics": {"enable": false},
+  "quickapp": {},
+  "h5": {
+    "sdkConfigs": {
+      "maps": {
+        "amap": {
+          "key": "",
+          "securityJsCode": ""
+        }
+      }
+    }
+  },
+  "mp-weixin": {
+    "appid": "",
+    "setting": {"urlCheck": true, "es6": true},
+    "usingComponents": true,
+    "permission": {"scope.userLocation": {"desc": "用于记录标点的GPS位置"}},
+    "aMapWebServiceKey": ""
+  },
+  "mp-toutiao": {
+    "appid": "",
+    "setting": {"urlCheck": true},
+    "usingComponents": true
+  }
+}

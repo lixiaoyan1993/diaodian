@@ -1,0 +1,43 @@
+{
+  "name": "diaodian-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/app.ts",
+    "backfill:species": "tsx src/scripts/backfill-species-from-note.ts -- --write && tsx src/scripts/rebuild-spot-search-text.ts -- --write",
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "db:init-spot-links": "tsx src/scripts/init-spot-links.ts",
+    "migrate:source-links": "tsx src/scripts/migrate-source-links-to-spot-links.ts",
+    "backfill:species-from-note": "tsx src/scripts/backfill-species-from-note.ts",
+    "rebuild:spot-search-text": "tsx src/scripts/rebuild-spot-search-text.ts",
+    "normalize:spot-district": "tsx src/scripts/normalize-spot-district.ts"
+  },
+  "dependencies": {
+    "@koa/cors": "^5.0.0",
+    "@koa/multer": "^3.0.0",
+    "@koa/router": "^12.0.1",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2",
+    "koa": "^2.15.3",
+    "koa-body": "^6.0.1",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.22.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@esbuild/darwin-arm64": "^0.28.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/koa": "^2.15.0",
+    "@types/koa__cors": "^5.0.0",
+    "@types/koa__router": "^12.0.4",
+    "@types/multer": "^1.4.12",
+    "@types/node": "^22.9.0",
+    "esbuild": "^0.28.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

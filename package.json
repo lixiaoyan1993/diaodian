@@ -1,0 +1,13 @@
+{
+  "name": "diaodian",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run dev:web",
+    "build": "npm run build:web",
+    "dev:web": "powershell -ExecutionPolicy Bypass -File scripts/dev-web.ps1",
+    "build:web": "powershell -ExecutionPolicy Bypass -File scripts/build-web.ps1",
+    "build:server": "npm --prefix server run build",
+    "build:all": "npm run build:web && npm run build:server"
+  }
+}

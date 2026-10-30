@@ -1,0 +1,179 @@
+{
+  "pages": [
+    {
+      "path": "pages/hall/hall",
+      "style": {
+        "navigationBarTitleText": "标点大厅",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/record/record",
+      "style": {
+        "navigationBarTitleText": "记点"
+      }
+    },
+    {
+      "path": "pages/spot/spot",
+      "style": {
+        "navigationBarTitleText": "标点详情"
+      }
+    },
+    {
+      "path": "pages/verify/verify",
+      "style": {
+        "navigationBarTitleText": "验点"
+      }
+    },
+    {
+      "path": "pages/map/map",
+      "style": {
+        "navigationBarTitleText": "地图"
+      }
+    },
+    {
+      "path": "pages/map-picker/map-picker",
+      "style": {
+        "navigationBarTitleText": "选择位置",
+        "app-plus": {
+          "animationDuration": 300,
+          "bounce": "none"
+        }
+      }
+    },
+    {
+      "path": "pages/spot-edit/spot-edit",
+      "style": {
+        "navigationBarTitleText": "编辑标点"
+      }
+    },
+    {
+      "path": "pages/tools/tools",
+      "style": {
+        "navigationBarTitleText": "出行"
+      }
+    },
+    {
+      "path": "pages/catches/catches",
+      "style": {
+        "navigationBarTitleText": "我的渔获"
+      }
+    },
+    {
+      "path": "pages/library/library",
+      "style": {
+        "navigationBarTitleText": "我的点库"
+      }
+    },
+    {
+      "path": "pages/favorites/favorites",
+      "style": {
+        "navigationBarTitleText": "我的收藏"
+      }
+    },
+    {
+      "path": "pages/my-verifications/my-verifications",
+      "style": {
+        "navigationBarTitleText": "我的验点"
+      }
+    },
+    {
+      "path": "pages/feedback/feedback",
+      "style": {
+        "navigationBarTitleText": "意见反馈"
+      }
+    },
+    {
+      "path": "pages/search-spots/search-spots",
+      "style": {
+        "navigationBarTitleText": "搜索标点"
+      }
+    },
+    {
+      "path": "pages/my/my",
+      "style": {
+        "navigationBarTitleText": "个人中心"
+      }
+    },
+    {
+      "path": "pages/login/login",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "鱼标点",
+    "navigationBarBackgroundColor": "#F3F6F0",
+    "backgroundColor": "#F3F6F0",
+    "backgroundColorContent": "#F3F6F0"
+  },
+  "tabBar": {
+    "color": "#6F7B74",
+    "selectedColor": "#C95F32",
+    "backgroundColor": "#FFFEFA",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/hall/hall",
+        "text": "大厅",
+        "iconPath": "static/tab-map.png",
+        "selectedIconPath": "static/tab-map-active.png"
+      },
+      {
+        "pagePath": "pages/record/record",
+        "text": "记点",
+        "iconPath": "static/tab-pin.png",
+        "selectedIconPath": "static/tab-pin-active.png"
+      },
+      {
+        "pagePath": "pages/tools/tools",
+        "text": "出行",
+        "iconPath": "static/tab-tools.png",
+        "selectedIconPath": "static/tab-tools-active.png"
+      },
+      {
+        "pagePath": "pages/catches/catches",
+        "text": "渔获",
+        "iconPath": "static/tab-record.png",
+        "selectedIconPath": "static/tab-record-active.png"
+      },
+      {
+        "pagePath": "pages/my/my",
+        "text": "我的",
+        "iconPath": "static/tab-my.png",
+        "selectedIconPath": "static/tab-my-active.png"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于记录标点的GPS位置"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation",
+    "chooseLocation",
+    {
+      "path": "pages/map-picker/map-picker",
+      "style": {
+        "navigationBarTitleText": "选择位置",
+        "app-plus": {
+          "animationDuration": 300,
+          "bounce": "none"
+        }
+      }
+    },
+    {
+      "path": "pages/map-picker/map-picker",
+      "style": {
+        "navigationBarTitleText": "选择位置",
+        "app-plus": {
+          "animationDuration": 300,
+          "bounce": "none"
+        }
+      }
+    }
+  ]
+}
